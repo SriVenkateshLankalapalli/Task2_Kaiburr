@@ -1,0 +1,46 @@
+package com.example.taskmanager;
+
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.*;
+import io.kubernetes.client.util.Config;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.io.IOException;
+import java.util.Collections;
+
+@SpringBootApplication
+public class TaskManagerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TaskManagerApplication.class, args);
+    }
+
+    public static void createKubernetesPod(String command) throws IOException {
+        ApiClient client = Config.defaultClient();
+        Configuration.setDefaultApiClient(client);
+        CoreV1Api api = new CoreV1Api();
+
+        V1Pod pod = new V1Pod()
+                .apiVersion("v1")
+                .kind("Pod")
+                .metadata(new V1ObjectMeta().name("task-execution-pod"))
+                .spec(new V1PodSpec()
+                        .containers(Collections.singletonList(
+                                new V1Container()
+                                        .name("task-container")
+                                        .image("busybox")
+                                        .command(Collections.singletonList("sh"))
+                                        .args(Collections.singletonList("-c"))
+                                        .args(Collections.singletonList(command))
+                        ))
+                        .restartPolicy("Never"));
+
+        try {
+            api.createNamespacedPod("default", pod, null, null, null);
+            System.out.println("Pod created successfully");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
